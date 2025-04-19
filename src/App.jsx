@@ -20,21 +20,24 @@ const App = () => {
   }, [isAuthenticated, navigate]);
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
+      {/* Sidebar - now properly positioned for all screen sizes */}
       {isAuthenticated && (
-        <div className={`sidebar-container fixed lg:static z-30 w-64 transition-all duration-300 ease-in-out ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}>
-          <Sidebar setSidebarOpen={setSidebarOpen} />
-        </div>
+        <Sidebar 
+          sidebarOpen={sidebarOpen} 
+          setSidebarOpen={setSidebarOpen} 
+        />
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content Area */}
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${
+        // On mobile, content stays full width (sidebar overlays)
+        // On desktop, we add margin when sidebar is present
+        isAuthenticated ? "lg:ml-64" : ""
+      }`}>
         {/* Mobile Header */}
         {isAuthenticated && (
-          <header className="lg:hidden bg-white shadow-sm">
+          <header className="lg:hidden bg-white shadow-sm z-10">
             <div className="flex items-center justify-between p-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -50,27 +53,22 @@ const App = () => {
           </header>
         )}
 
-        {/* Routes */}
+        {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
-          <div className=" mx-auto">
+          <div className="mx-auto">
             <Routes>
-              {/* Public Routes */}
               <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
               
-              {/* Protected Routes */}
               {isAuthenticated ? (
                 <>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/contact" element={<ContactsPage />} />
                   <Route path="/corporate" element={<Corporate />} />
                   <Route path="/register" element={<Register />} />
-                  {/* Redirect any unmatched route to dashboard */}
                   <Route path="*" element={<Navigate to="/dashboard" />} />
                 </>
               ) : (
-                /* Redirect unauthenticated users to login */
-                <Route path="*" element={<Navigate to="/login" />}
-              />
+                <Route path="*" element={<Navigate to="/login" />} />
               )}
             </Routes>
           </div>

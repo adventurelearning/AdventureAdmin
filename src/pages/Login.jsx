@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../AuthContext";
 import logo from "../assets/logo-head.png";
 
-const API = "http://localhost:8000/api/auth";
+const API = import.meta.env.VITE_BACKEND_URL;
 
 export default function AdminLogin() {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -16,7 +16,7 @@ export default function AdminLogin() {
     setError(null);
     
     try {
-      const res = await fetch(`${API}/login`, {
+      const res = await fetch(`${API}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
