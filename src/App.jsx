@@ -7,6 +7,10 @@ import Dashboard from "./pages/Dashbord";
 import Corporate from "./pages/Corporate";
 import Register from "./pages/Register";
 import { useAuth } from "./AuthContext";
+import Test from "./pages/Test";
+import Intern from "./pages/Intern";
+import TechContact from "./pages/TechContact";
+import JobApplication from "./pages/JobApplication";
 
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -17,10 +21,10 @@ const App = () => {
     if (!isAuthenticated && !window.location.pathname.includes('/login')) {
       navigate("/login");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated,]);
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
+    <div className="max-w-screen flex h-screen bg-gray-100 font-sans overflow-hidden">
       {/* Sidebar - now properly positioned for all screen sizes */}
       {isAuthenticated && (
         <Sidebar 
@@ -65,7 +69,12 @@ const App = () => {
                   <Route path="/contact" element={<ContactsPage />} />
                   <Route path="/corporate" element={<Corporate />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/intern" element={<Intern />} />
+                  <Route path="/tech-contact" element={<TechContact />} />
+                  <Route path="/job-application" element={<JobApplication />} />
+                  <Route path="/test" element={<Test />} />
                   <Route path="*" element={<Navigate to="/dashboard" />} />
+
                 </>
               ) : (
                 <Route path="*" element={<Navigate to="/login" />} />
