@@ -6,7 +6,7 @@ export const AuthContext = createContext();
 
 const getStoredAuth = () => {
   if (typeof window !== "undefined") {
-    const storedToken = localStorage.getItem("token");
+    const storedToken = localStorage.getItem("authToken");
     return storedToken;
   }
   return null;
