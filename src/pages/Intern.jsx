@@ -256,14 +256,14 @@ const Intern = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                              registration.training_mode === "Online"
+                              intern.trainingMode === "Online"
                                 ? "bg-green-100 text-green-800"
-                                : registration.training_mode === "In-Person"
+                                : intern.trainingMode=== "In-Person"
                                 ? "bg-blue-100 text-blue-800"
                                 : "bg-purple-100 text-purple-800"
                             }`}
                           >
-                            {registration.training_mode}
+                            {intern.trainingMode || "N/A"}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
