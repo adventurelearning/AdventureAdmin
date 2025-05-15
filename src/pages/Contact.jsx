@@ -83,7 +83,7 @@ const ContactsPage = () => {
 
   const handleStatusUpdate = async (id) => {
     try {
-      await axios.patch(`${VITE_BACKEND_URL}/api/contacts/${id}`, {
+      await axios.put(`${VITE_BACKEND_URL}/api/contacts/${id}`, {
         status: tempStatus,
       });
       setContacts(

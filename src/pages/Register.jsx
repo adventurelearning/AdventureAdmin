@@ -102,7 +102,7 @@ const Register = () => {
 
   const handleStatusUpdate = async (id) => {
     try {
-      await axios.patch(`${VITE_BACKEND_URL}/api/register/${id}`, {
+      await axios.put(`${VITE_BACKEND_URL}/api/register/${id}`, {
         status: tempStatus,
       });
       setRegisteredData(
