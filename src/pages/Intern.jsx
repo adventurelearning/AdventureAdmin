@@ -8,6 +8,9 @@ const Intern = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [editingStatus, setEditingStatus] = useState(null);
+  const [tempStatus, setTempStatus] = useState("");
   const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
@@ -30,14 +33,19 @@ const Intern = () => {
   const filteredInterns = useMemo(() => {
     return interns.filter((intern) => {
       const searchLower = searchTerm.toLowerCase();
-      return (
+      const matchesSearch = 
         intern.fullName?.toLowerCase().includes(searchLower) ||
         intern.email?.toLowerCase().includes(searchLower) ||
         intern.collegeName?.toLowerCase().includes(searchLower) ||
-        intern.internshipDomain?.toLowerCase().includes(searchLower)
-      );
+        intern.internshipDomain?.toLowerCase().includes(searchLower);
+      
+      const matchesStatus = 
+        statusFilter === "all" || 
+        (intern.status ? intern.status.toLowerCase() === statusFilter.toLowerCase() : false);
+      
+      return matchesSearch && matchesStatus;
     });
-  }, [interns, searchTerm]);
+  }, [interns, searchTerm, statusFilter]);
 
   const formatDate = (dateString) => {
     const date = parseISO(dateString);
@@ -53,9 +61,10 @@ const Intern = () => {
       Degree: intern.degree || "N/A",
       Course: intern.mainCourse || "N/A",
       "Internship Field": intern.internshipDomain || "N/A",
+      Status: intern.status || "Not Set",
       Comments: intern.additionalComments || "N/A",
       "Resume URL": intern.resumeUrl || "N/A",
-      mode: intern.trainingMode || "N/A",
+      Mode: intern.trainingMode || "N/A",
       "Registered Date": formatDate(intern.createdAt),
     }));
 
@@ -74,15 +83,13 @@ const Intern = () => {
       Degree: ${intern.degree || "N/A"}
       Course: ${intern.mainCourse || "N/A"}
       Internship Field: ${intern.internshipDomain || "N/A"}
+      Status: ${intern.status || "Not Set"}
       Comments: ${intern.additionalComments || "N/A"}
       Mode: ${intern.trainingMode || "N/A"}
       Resume: ${intern.resumeUrl ? "Available" : "Not provided"}
       Registered: ${formatDate(intern.createdAt)}
     `;
 
-    // alert(details);
-
-    // Alternative: Open in new window with formatted content
     const detailsWindow = window.open("", "_blank");
     detailsWindow.document.write(`
       <html>
@@ -98,6 +105,37 @@ const Intern = () => {
         </body>
       </html>
     `);
+  };
+
+  const updateStatus = async (internId) => {
+    try {
+      await axios.put(`${VITE_BACKEND_URL}/api/intern/${internId}`, {
+        status: tempStatus
+      });
+      
+      setInterns(interns.map(intern => 
+        intern._id === internId ? {...intern, status: tempStatus} : intern
+      ));
+      
+      setEditingStatus(null);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      setError("Failed to update status. Please try again.");
+    }
+  };
+
+  const deleteIntern = async (internId) => {
+    if (!window.confirm("Are you sure you want to delete this intern record?")) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${VITE_BACKEND_URL}/api/intern/${internId}`);
+      setInterns(interns.filter(intern => intern._id !== internId));
+    } catch (error) {
+      console.error("Error deleting intern:", error);
+      setError("Failed to delete intern. Please try again.");
+    }
   };
 
   return (
@@ -137,6 +175,17 @@ const Intern = () => {
                 </svg>
               </div>
             </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="pl-3 pr-8 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="completed">Completed</option>
+            </select>
             <button
               onClick={exportToExcel}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -196,11 +245,11 @@ const Intern = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Field
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Training Mode
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Registered
@@ -258,13 +307,76 @@ const Intern = () => {
                             className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                               intern.trainingMode === "Online"
                                 ? "bg-green-100 text-green-800"
-                                : intern.trainingMode=== "In-Person"
+                                : intern.trainingMode === "In-Person"
                                 ? "bg-blue-100 text-blue-800"
                                 : "bg-purple-100 text-purple-800"
                             }`}
                           >
                             {intern.trainingMode || "N/A"}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {editingStatus === intern._id ? (
+                            <div className="flex items-center space-x-2">
+                              <select
+                                value={tempStatus}
+                                onChange={(e) => setTempStatus(e.target.value)}
+                                className="border border-gray-300 rounded px-2 py-1 text-sm"
+                              >
+                                <option value="">Select Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                                <option value="Completed">Completed</option>
+                              </select>
+                              <button
+                                onClick={() => updateStatus(intern._id)}
+                                className="text-green-600 hover:text-green-800"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => setEditingStatus(null)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <span
+                                className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                  !intern.status
+                                    ? "bg-gray-100 text-gray-800"
+                                    : intern.status === "Approved"
+                                    ? "bg-green-100 text-green-800"
+                                    : intern.status === "Rejected"
+                                    ? "bg-red-100 text-red-800"
+                                    : intern.status === "Completed"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }`}
+                              >
+                                {intern.status || "Not Set"}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setEditingStatus(intern._id);
+                                  setTempStatus(intern.status || "");
+                                }}
+                                className="ml-2 text-gray-500 hover:text-gray-700"
+                                title="Edit Status"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatDate(intern.createdAt)}
@@ -341,13 +453,33 @@ const Intern = () => {
                               </svg>
                             </a>
                           )}
+                          <button
+                            onClick={() => deleteIntern(intern._id)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete Intern"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td
-                        colSpan="6"
+                        colSpan="8"
                         className="px-6 py-4 text-center text-gray-500"
                       >
                         No interns found{" "}

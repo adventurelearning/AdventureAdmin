@@ -7,6 +7,10 @@ import { saveAs } from "file-saver";
 const ContactsPage = () => {
   const [contacts, setContacts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [editingStatus, setEditingStatus] = useState(null);
+  const [tempStatus, setTempStatus] = useState("");
   const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
@@ -30,18 +34,20 @@ const ContactsPage = () => {
 
   const formatDate = (dateString) => {
     try {
-      return format(new Date(dateString), "MMM d, yyyy h:mm a"); // e.g., "Jul 2, 2024 3:45 PM"
+      return format(new Date(dateString), "MMM d, yyyy h:mm a");
     } catch (error) {
       console.error("Error formatting date:", error);
       return "Invalid Date";
     }
   };
+
   const exportContactsToExcel = () => {
     const worksheetData = contacts.map((contact) => ({
       Name: contact.name,
       Email: contact.email,
       Phone: contact.phone_number,
       Subject: contact.sub,
+      Status: contact.status || "New",
       Message: contact.message,
       "Received At": formatDate(contact.createdAt),
     }));
@@ -58,9 +64,53 @@ const ContactsPage = () => {
     saveAs(data, "contact_enquiries.xlsx");
   };
 
+  const statusOptions = ["All", "New", "In Progress", "Resolved", "Follow Up", "Rejected"];
+
+  const filteredContacts = contacts.filter((contact) => {
+    const matchesSearch =
+      contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.sub.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.message.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      selectedStatus === "All" ||
+      (contact.status ? contact.status === selectedStatus : selectedStatus === "All");
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleStatusUpdate = async (id) => {
+    try {
+      await axios.patch(`${VITE_BACKEND_URL}/api/contacts/${id}`, {
+        status: tempStatus,
+      });
+      setContacts(
+        contacts.map((contact) =>
+          contact._id === id ? { ...contact, status: tempStatus } : contact
+        )
+      );
+      setEditingStatus(null);
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this contact enquiry?")) {
+      try {
+        await axios.delete(`${VITE_BACKEND_URL}/api/contacts/${id}`);
+        setContacts(contacts.filter((contact) => contact._id !== id));
+      } catch (error) {
+        console.error("Error deleting contact:", error);
+      }
+    }
+  };
+
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
             Contact Enquiries
@@ -69,11 +119,42 @@ const ContactsPage = () => {
             List of all contact enquiries received
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500">
-            Total: {contacts.length}{" "}
-            {contacts.length === 1 ? "enquiry" : "enquiries"}
+        <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-grow">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search enquiries..."
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
+          <select
+            className="block w-full sm:w-auto pl-3 pr-10 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+          >
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
           <button
             onClick={exportContactsToExcel}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
@@ -88,49 +169,38 @@ const ContactsPage = () => {
           <div className="flex justify-center items-center p-12">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
           </div>
-        ) : contacts.length === 0 ? (
+        ) : filteredContacts.length === 0 ? (
           <div className="text-center p-12 text-gray-500">
             No contact enquiries found
+            {searchTerm || selectedStatus !== "All" ? " matching your criteria" : ""}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Name
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Contact
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Subject
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Received
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Message
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {contacts.map((contact) => (
+                {filteredContacts.map((contact) => (
                   <tr
                     key={contact._id}
                     className="hover:bg-gray-50 transition-colors"
@@ -171,18 +241,141 @@ const ContactsPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {editingStatus === contact._id ? (
+                        <div className="flex items-center space-x-2">
+                          <select
+                            className="border rounded px-2 py-1 text-sm"
+                            value={tempStatus}
+                            onChange={(e) => setTempStatus(e.target.value)}
+                          >
+                            {statusOptions
+                              .filter((status) => status !== "All")
+                              .map((status) => (
+                                <option key={status} value={status}>
+                                  {status}
+                                </option>
+                              ))}
+                          </select>
+                          <button
+                            onClick={() => handleStatusUpdate(contact._id)}
+                            className="text-green-600 hover:text-green-800 text-sm"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingStatus(null)}
+                            className="text-gray-500 hover:text-gray-700 text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                              !contact.status
+                                ? "bg-gray-100 text-gray-800"
+                                : contact.status === "Resolved"
+                                ? "bg-green-100 text-green-800"
+                                : contact.status === "Rejected"
+                                ? "bg-red-100 text-red-800"
+                                : contact.status === "Follow Up"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {contact.status || "New"}
+                          </span>
+                          <button
+                            onClick={() => {
+                              setEditingStatus(contact._id);
+                              setTempStatus(contact.status || "New");
+                            }}
+                            className="ml-2 text-indigo-600 hover:text-indigo-900 text-sm"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {formatDate(contact.createdAt)}
                       </div>
                       <div className="text-xs text-gray-500">via Website</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div
-                        className="text-sm text-gray-500 line-clamp-2"
-                        title={contact.message}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button
+                        onClick={() => {
+                          const details = `Name: ${contact.name}\nEmail: ${contact.email}\nPhone: ${contact.phone_number}\nSubject: ${contact.sub}\nMessage: ${contact.message}`;
+                          alert(details);
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View Details"
                       >
-                        {contact.message}
-                      </div>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          window.location.href = `mailto:${contact.email}`;
+                        }}
+                        className="text-green-600 hover:text-green-900"
+                        title="Reply"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(contact._id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -192,16 +385,13 @@ const ContactsPage = () => {
         )}
       </div>
 
-      {/* Pagination would go here if needed */}
-      {/* <div className="mt-6 flex justify-between items-center">
-        <div className="text-sm text-gray-500">
-          Showing 1 to 10 of {contacts.length} entries
+      {filteredContacts.length > 0 && (
+        <div className="mt-4 flex justify-between items-center">
+          <div className="text-sm text-gray-500">
+            Showing {filteredContacts.length} of {contacts.length} enquiries
+          </div>
         </div>
-        <div className="flex space-x-2">
-          <button className="px-3 py-1 border rounded text-sm">Previous</button>
-          <button className="px-3 py-1 border rounded bg-blue-500 text-white text-sm">Next</button>
-        </div>
-      </div> */}
+      )}
     </div>
   );
 };

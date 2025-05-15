@@ -8,6 +8,8 @@ const JobApplication = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingStatus, setEditingStatus] = useState(null);
+  const [tempStatus, setTempStatus] = useState("");
   const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
@@ -36,7 +38,8 @@ const JobApplication = () => {
         app.fullName.toLowerCase().includes(searchLower) ||
         app.email.toLowerCase().includes(searchLower) ||
         (app.phone && app.phone.includes(searchTerm)) ||
-        (app.coverLetter && app.coverLetter.toLowerCase().includes(searchLower))
+        (app.coverLetter && app.coverLetter.toLowerCase().includes(searchLower)) ||
+        (app.status && app.status.toLowerCase().includes(searchLower))
       );
     });
   }, [applications, searchTerm]);
@@ -52,6 +55,7 @@ const JobApplication = () => {
       Email: app.email,
       Phone: app.phone || "N/A",
       Position: app.position || "N/A",
+      Status: app.status || "N/A",
       "Cover Letter": app.coverLetter || "N/A",
       "Resume URL": app.resumeUrl,
       "Applied Date": formatDate(app.createdAt),
@@ -63,8 +67,37 @@ const JobApplication = () => {
     XLSX.writeFile(workbook, "Job_Applications.xlsx");
   };
 
+  const handleStatusUpdate = async (id) => {
+    try {
+      await axios.patch(`${VITE_BACKEND_URL}/api/jobapplication/${id}`, {
+        status: tempStatus,
+      });
+      setApplications(
+        applications.map((app) =>
+          app._id === id ? { ...app, status: tempStatus } : app
+        )
+      );
+      setEditingStatus(null);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      setError("Failed to update status. Please try again.");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this application?")) {
+      try {
+        await axios.delete(`${VITE_BACKEND_URL}/api/jobapplication/${id}`);
+        setApplications(applications.filter((app) => app._id !== id));
+      } catch (error) {
+        console.error("Error deleting application:", error);
+        setError("Failed to delete application. Please try again.");
+      }
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className=" max-w-5xl sm:max-w-lg md:max-w-4xl xl:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
@@ -166,6 +199,12 @@ const JobApplication = () => {
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
                       Documents
                     </th>
                     <th
@@ -173,6 +212,12 @@ const JobApplication = () => {
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
                       Applied
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -213,6 +258,56 @@ const JobApplication = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          {editingStatus === app._id ? (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                className="border rounded px-2 py-1 text-sm"
+                                value={tempStatus}
+                                onChange={(e) => setTempStatus(e.target.value)}
+                                placeholder="Enter status"
+                              />
+                              <button
+                                onClick={() => handleStatusUpdate(app._id)}
+                                className="text-green-600 hover:text-green-800 text-sm"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingStatus(null)}
+                                className="text-gray-500 hover:text-gray-700 text-sm"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                  !app.status
+                                    ? "bg-gray-100 text-gray-800"
+                                    : app.status === "Approved"
+                                    ? "bg-green-100 text-green-800"
+                                    : app.status === "Rejected"
+                                    ? "bg-red-100 text-red-800"
+                                    : app.status === "Completed"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }`}>
+                                {app.status || "Not set"}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setEditingStatus(app._id);
+                                  setTempStatus(app.status || "");
+                                }}
+                                className="ml-2 text-indigo-600 hover:text-indigo-900 text-sm"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <a
                             href={app.resumeUrl}
                             target="_blank"
@@ -221,8 +316,6 @@ const JobApplication = () => {
                           >
                             Resume
                           </a>
-                          {/* <embed src={app.resumeUrl} width="600" height="800" /> */}
-
                           {app.coverLetter && (
                             <button
                               onClick={() => alert(app.coverLetter)}
@@ -235,12 +328,20 @@ const JobApplication = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatDate(app.createdAt)}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <button
+                            onClick={() => handleDelete(app._id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td
-                        colSpan="4"
+                        colSpan="6"
                         className="px-6 py-4 text-center text-gray-500"
                       >
                         No applications found{" "}

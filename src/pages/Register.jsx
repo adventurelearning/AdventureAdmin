@@ -9,6 +9,9 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTrainingMode, setSelectedTrainingMode] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [editingStatus, setEditingStatus] = useState(null);
+  const [tempStatus, setTempStatus] = useState("");
   const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
@@ -38,6 +41,7 @@ const Register = () => {
       return "Invalid Date";
     }
   };
+
   const exportToExcel = () => {
     const worksheetData = registeredData.map((item) => ({
       Name: item.name,
@@ -45,6 +49,7 @@ const Register = () => {
       Phone: item.phone_number,
       Courses: item.courses,
       "Training Mode": item.training_mode,
+      Status: item.status || "Not set",
       "Registered Date": formatDate(item.createdAt),
     }));
 
@@ -60,10 +65,19 @@ const Register = () => {
     saveAs(data, "registered_users.xlsx");
   };
 
-  // Get unique training modes for filter
+  // Get unique training modes and statuses for filters
   const trainingModes = [
     "All",
     ...new Set(registeredData.map((item) => item.training_mode)),
+  ];
+
+  const statusOptions = [
+    "All",
+    "Pending",
+    "Confirmed",
+    "Rejected",
+    "Completed",
+    "Cancelled",
   ];
 
   const filteredData = registeredData.filter((registration) => {
@@ -79,11 +93,42 @@ const Register = () => {
       selectedTrainingMode === "All" ||
       registration.training_mode === selectedTrainingMode;
 
-    return matchesSearch && matchesTrainingMode;
+    const matchesStatus =
+      selectedStatus === "All" ||
+      (registration.status ? registration.status === selectedStatus : selectedStatus === "All");
+
+    return matchesSearch && matchesTrainingMode && matchesStatus;
   });
 
+  const handleStatusUpdate = async (id) => {
+    try {
+      await axios.patch(`${VITE_BACKEND_URL}/api/register/${id}`, {
+        status: tempStatus,
+      });
+      setRegisteredData(
+        registeredData.map((item) =>
+          item._id === id ? { ...item, status: tempStatus } : item
+        )
+      );
+      setEditingStatus(null);
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this registration?")) {
+      try {
+        await axios.delete(`${VITE_BACKEND_URL}/api/register/${id}`);
+        setRegisteredData(registeredData.filter((item) => item._id !== id));
+      } catch (error) {
+        console.error("Error deleting registration:", error);
+      }
+    }
+  };
+
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
@@ -129,6 +174,17 @@ const Register = () => {
               </option>
             ))}
           </select>
+          <select
+            className="block w-full sm:w-auto pl-3 pr-10 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+          >
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
           <button
             onClick={exportToExcel}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition-colors text-sm"
@@ -162,7 +218,7 @@ const Register = () => {
               No registrations found
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchTerm || selectedTrainingMode !== "All"
+              {searchTerm || selectedTrainingMode !== "All" || selectedStatus !== "All"
                 ? "Try adjusting your search or filter"
                 : "No users have registered yet"}
             </p>
@@ -200,9 +256,20 @@ const Register = () => {
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Registered
                   </th>
-                  {/* <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th> */}
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -255,18 +322,113 @@ const Register = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {editingStatus === registration._id ? (
+                        <div className="flex items-center space-x-2">
+                          <select
+                            className="border rounded px-2 py-1 text-sm"
+                            value={tempStatus}
+                            onChange={(e) => setTempStatus(e.target.value)}
+                          >
+                            {statusOptions
+                              .filter((status) => status !== "All")
+                              .map((status) => (
+                                <option key={status} value={status}>
+                                  {status}
+                                </option>
+                              ))}
+                          </select>
+                          <button
+                            onClick={() => handleStatusUpdate(registration._id)}
+                            className="text-green-600 hover:text-green-800 text-sm"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingStatus(null)}
+                            className="text-gray-500 hover:text-gray-700 text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                              !registration.status
+                                ? "bg-gray-100 text-gray-800"
+                                : registration.status === "Confirmed"
+                                ? "bg-green-100 text-green-800"
+                                : registration.status === "Rejected" ||
+                                  registration.status === "Cancelled"
+                                ? "bg-red-100 text-red-800"
+                                : registration.status === "Completed"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {registration.status || "Pending"}
+                          </span>
+                          <button
+                            onClick={() => {
+                              setEditingStatus(registration._id);
+                              setTempStatus(registration.status || "Pending");
+                            }}
+                            className="ml-2 text-indigo-600 hover:text-indigo-900 text-sm"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {formatDate(registration.createdAt)}
                       </div>
                     </td>
-                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-indigo-600 hover:text-indigo-900 mr-4">
-                        View
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button
+                        onClick={() => {
+                          window.location.href = `mailto:${registration.email}`;
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Send Email"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                          />
+                        </svg>
                       </button>
-                      <button className="text-gray-600 hover:text-gray-900">
-                        Contact
+                      <button
+                        onClick={() => handleDelete(registration._id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
                       </button>
-                    </td> */}
+                    </td>
                   </tr>
                 ))}
               </tbody>
