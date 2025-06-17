@@ -171,7 +171,7 @@ const TechContact = () => {
           </div>
         ) : (
           <div className="overflow-hidden overflow-x-auto border border-gray-200 rounded-lg scrollbar">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto h-screen">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>

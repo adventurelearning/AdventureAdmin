@@ -228,8 +228,8 @@ const Intern = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
           </div>
         ) : (
-          <div className="overflow-hidden border border-gray-200 rounded-lg">
-            <div className="overflow-x-auto">
+          <div className="overflow-y-auto border border-gray-200 rounded-lg">
+            <div className="h-screen overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
