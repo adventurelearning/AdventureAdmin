@@ -97,7 +97,7 @@ const JobApplication = () => {
   };
 
   return (
-    <div className=" max-w-5xl sm:max-w-lg md:max-w-4xl xl:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-6xl sm:max-w-lg md:max-w-5xl xl:max-w-5xl mx-auto px-1 sm:px-1 lg:px-1 py-1">
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
@@ -179,7 +179,7 @@ const JobApplication = () => {
           </div>
         ) : (
           <div className="overflow-hidden border border-gray-200 rounded-lg">
-            <div className="overflow-x-auto h-screen">
+            <div className="overflow-x-auto h-screen max-h-[450px] max-w-full">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>

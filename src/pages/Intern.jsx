@@ -139,7 +139,7 @@ const Intern = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-6xl sm:max-w-lg md:max-w-5xl xl:max-w-5xl mx-auto px-1 sm:px-1 lg:px-1 py-1">
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>

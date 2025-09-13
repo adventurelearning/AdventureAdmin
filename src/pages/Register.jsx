@@ -128,7 +128,7 @@ const Register = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+    <div className="max-w-6xl sm:max-w-lg md:max-w-5xl xl:max-w-5xl mx-auto px-1 sm:px-1 lg:px-1 py-1">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
