@@ -11,6 +11,7 @@ import Test from "./pages/Test";
 import Intern from "./pages/Intern";
 import TechContact from "./pages/TechContact";
 import JobApplication from "./pages/JobApplication";
+import Certificates from "./pages/Certificates";
 
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -74,6 +75,7 @@ const App = () => {
                   <Route path="/job-application" element={<JobApplication />} />
                   <Route path="/test" element={<Test />} />
                   <Route path="*" element={<Navigate to="/dashboard" />} />
+                  <Route path='/certificate' element={<Certificates />} />
 
                 </>
               ) : (

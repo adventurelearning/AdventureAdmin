@@ -139,6 +139,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                   <span className="ml-3">Register</span>
                 </Link>
               </li>
+               <li>
+                <Link
+                  to="/certificate"
+                  className={`flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors
+                    ${location.pathname === "/certificate" ? "bg-gray-700" : ""}
+                  `}
+                >
+                  <FaUserCog className="flex-shrink-0 text-gray-300" size={18} />
+                  <span className="ml-3">Certificate</span>
+                </Link>
+              </li>
 
               <li>
                 <div className="mt-4">
