@@ -12,7 +12,8 @@ import {
   FaEnvelope,
   FaBriefcase,
   FaUserCog,
-  FaFileAlt
+  FaFileAlt,
+  FaBloggerB
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../AuthContext";
@@ -137,6 +138,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 >
                   <FaUserCog className="flex-shrink-0 text-gray-300" size={18} />
                   <span className="ml-3">Register</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/blog"
+                  className={`flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors
+                    ${location.pathname === "/blog" ? "bg-gray-700" : ""}
+                  `}
+                >
+                  <FaBloggerB className="flex-shrink-0 text-gray-300" size={18} />
+                  <span className="ml-3">Blog</span>
                 </Link>
               </li>
 
