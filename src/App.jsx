@@ -11,6 +11,8 @@ import Test from "./pages/Test";
 import Intern from "./pages/Intern";
 import TechContact from "./pages/TechContact";
 import JobApplication from "./pages/JobApplication";
+import BlogList from "./pages/blog/BlogList";
+import CreateBlog from "./pages/blog/CreateBlog";
 
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -27,9 +29,9 @@ const App = () => {
     <div className="max-w-screen flex h-screen bg-gray-100 font-sans overflow-hidden">
       {/* Sidebar - now properly positioned for all screen sizes */}
       {isAuthenticated && (
-        <Sidebar 
-          sidebarOpen={sidebarOpen} 
-          setSidebarOpen={setSidebarOpen} 
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
         />
       )}
 
@@ -38,7 +40,7 @@ const App = () => {
         // On mobile, content stays full width (sidebar overlays)
         // On desktop, we add margin when sidebar is present
         isAuthenticated ? "lg:ml-64" : ""
-      }`}>
+        }`}>
         {/* Mobile Header */}
         {isAuthenticated && (
           <header className="lg:hidden bg-white shadow-sm z-10">
@@ -62,7 +64,7 @@ const App = () => {
           <div className="mx-auto">
             <Routes>
               <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
-              
+
               {isAuthenticated ? (
                 <>
                   <Route path="/dashboard" element={<Dashboard />} />
@@ -74,7 +76,11 @@ const App = () => {
                   <Route path="/job-application" element={<JobApplication />} />
                   <Route path="/test" element={<Test />} />
                   <Route path="*" element={<Navigate to="/dashboard" />} />
-
+                  <Route path="blog">
+                    <Route index element={<BlogList />} />
+                    <Route path="add-blog" element={<CreateBlog />} />
+                    <Route path="edit-blog/:id" element={<CreateBlog />} />
+                  </Route>
                 </>
               ) : (
                 <Route path="*" element={<Navigate to="/login" />} />
