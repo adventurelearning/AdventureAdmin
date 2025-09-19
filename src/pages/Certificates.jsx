@@ -11,7 +11,10 @@ const Certificates = () => {
     course: '',
     startDate: null,
     endDate: null,
-    image: null
+    image: null,
+    generateCredentials: false,
+    username: '',
+    password: ''
   });
   const [certificates, setCertificates] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -23,14 +26,20 @@ const Certificates = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredCertificates, setFilteredCertificates] = useState([]);
   const [duration, setDuration] = useState(0);
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginData, setLoginData] = useState({
+    username: '',
+    password: ''
+  });
+  const [studentCertificate, setStudentCertificate] = useState(null);
+  const [generatedCredentials, setGeneratedCredentials] = useState(null);
+  const [showCredentialsForm, setShowCredentialsForm] = useState(false);
 
-  // Fetch certificates and courses on component mount
   useEffect(() => {
     fetchCertificates();
     fetchCourses();
   }, []);
 
-  // Calculate duration when dates change
   useEffect(() => {
     if (formData.startDate && formData.endDate) {
       const start = new Date(formData.startDate);
@@ -43,7 +52,6 @@ const Certificates = () => {
     }
   }, [formData.startDate, formData.endDate]);
 
-  // Filter certificates when search term changes
   useEffect(() => {
     if (searchTerm) {
       const filtered = certificates.filter(cert => 
@@ -82,8 +90,16 @@ const Certificates = () => {
   };
 
   const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  const handleLoginChange = (e) => {
+    setLoginData({
+      ...loginData,
       [e.target.name]: e.target.value
     });
   };
@@ -152,12 +168,30 @@ const Certificates = () => {
     data.append('startDate', formData.startDate.toISOString());
     data.append('endDate', formData.endDate.toISOString());
     data.append('image', formData.image);
+    data.append('generateCredentials', formData.generateCredentials);
+    
+    // Add username and password if provided
+    if (formData.generateCredentials) {
+      if (formData.username) {
+        data.append('username', formData.username);
+      }
+      if (formData.password) {
+        data.append('password', formData.password);
+      }
+    }
 
     try {
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/certificates`, data, {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/certificates`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setMessage('Certificate uploaded successfully!');
+      
+      if (formData.generateCredentials && response.data.credentials) {
+        setGeneratedCredentials(response.data.credentials);
+        setMessage('Certificate uploaded successfully with student credentials!');
+      } else {
+        setMessage('Certificate uploaded successfully!');
+      }
+      
       setIsError(false);
       setFormData({ 
         name: '', 
@@ -166,11 +200,15 @@ const Certificates = () => {
         course: '',
         startDate: null,
         endDate: null,
-        image: null 
+        image: null,
+        generateCredentials: false,
+        username: '',
+        password: ''
       });
       setDuration(0);
       document.getElementById('image').value = '';
-      fetchCertificates(); // Refresh the list
+      setShowCredentialsForm(false);
+      fetchCertificates();
     } catch (error) {
       let errorMessage = 'Error uploading certificate: ';
       
@@ -189,6 +227,23 @@ const Certificates = () => {
     }
   };
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/certificates/student-login`, loginData);
+      setStudentCertificate(response.data.certificate);
+      setMessage('Login successful!');
+      setIsError(false);
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Login failed');
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     setIsDeleting(true);
     setDeleteId(id);
@@ -196,7 +251,7 @@ const Certificates = () => {
       await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/certificates/${id}`);
       setMessage('Certificate deleted successfully!');
       setIsError(false);
-      fetchCertificates(); // Refresh the list
+      fetchCertificates();
     } catch (error) {
       setMessage('Error deleting certificate');
       setIsError(true);
@@ -208,21 +263,14 @@ const Certificates = () => {
 
   const handleDownload = async (certificate) => {
     try {
-      // Fetch the image as a blob
       const response = await fetch(certificate.imageUrl);
       const blob = await response.blob();
-      
-      // Create a temporary URL for the blob
       const blobUrl = URL.createObjectURL(blob);
-      
-      // Create a temporary anchor element to trigger download
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = `${certificate.name}_${certificate.certificateNumber}.jpg`;
       document.body.appendChild(link);
       link.click();
-      
-      // Clean up
       document.body.removeChild(link);
       URL.revokeObjectURL(blobUrl);
     } catch (error) {
@@ -242,15 +290,105 @@ const Certificates = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center">Certificate Management System</h1>
+      <h1 className="text-3xl font-bold text-center">Certificate Management System</h1>
       
-      {/* Upload Section */}
+      {/* <div className="bg-white p-6 rounded-lg shadow-md mb-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold">Student Login</h2>
+          <button
+            onClick={() => setShowLogin(!showLogin)}
+            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+          >
+            {showLogin ? 'Hide Login' : 'Show Login'}
+          </button>
+        </div>
+        
+        {showLogin && (
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-700 mb-2" htmlFor="username">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={loginData.username}
+                  onChange={handleLoginChange}
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 mb-2" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={loginData.password}
+                  onChange={handleLoginChange}
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+            
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isLoading ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
+        )}
+        
+        {studentCertificate && (
+          <div className="mt-6 p-4 bg-gray-100 rounded">
+            <h3 className="text-xl font-semibold mb-2">Your Certificate</h3>
+            <p><strong>Name:</strong> {studentCertificate.name}</p>
+            <p><strong>Certificate Number:</strong> {studentCertificate.certificateNumber}</p>
+            <p><strong>Course:</strong> {studentCertificate.course}</p>
+            <p><strong>Duration:</strong> {studentCertificate.duration} days</p>
+            <p><strong>Issue Date:</strong> {formatDate(studentCertificate.issueDate)}</p>
+            <button
+              onClick={() => handleDownload(studentCertificate)}
+              className="mt-4 bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600"
+            >
+              Download Certificate
+            </button>
+          </div>
+        )}
+      </div> */}
+      
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
         <h2 className="text-2xl font-semibold mb-4">Upload New Certificate</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           {message && (
             <div className={`p-3 rounded ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
               {message}
+            </div>
+          )}
+          
+          {generatedCredentials && (
+            <div className="p-3 bg-blue-100 text-blue-700 rounded">
+              <p><strong>Student Credentials Generated:</strong></p>
+              <p><strong>Username:</strong> {generatedCredentials.username}</p>
+              <p><strong>Password:</strong> {generatedCredentials.password}</p>
+              <p className="text-sm mt-2">Please save these credentials as they will not be shown again.</p>
+              <button
+                type="button"
+                onClick={() => setGeneratedCredentials(null)}
+                className="mt-2 bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600 text-sm"
+              >
+                Close
+              </button>
             </div>
           )}
           
@@ -386,24 +524,80 @@ const Certificates = () => {
               required
             />
           </div>
+          
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="generateCredentials"
+              name="generateCredentials"
+              checked={formData.generateCredentials}
+              onChange={(e) => {
+                handleChange(e);
+                setShowCredentialsForm(e.target.checked);
+              }}
+              className="mr-2"
+            />
+            <label htmlFor="generateCredentials" className="text-gray-700">
+              Generate Student Login Credentials
+            </label>
+          </div>
 
+          {showCredentialsForm && (
+            <div className="bg-gray-100 p-4 rounded">
+              <h3 className="text-lg font-semibold mb-2">Student Credentials</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                You can provide custom username and password, or leave blank to auto-generate.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 mb-2" htmlFor="username">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Username"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-2" htmlFor="password">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="password"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-center"> 
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={` bg-blue-500 text-white py-2 px-4 rounded  hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               isLoading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
             {isLoading ? 'Uploading...' : 'Upload Certificate'}
           </button>
+          </div> 
         </form>
       </div>
 
-      {/* Search and List Section */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-2xl font-semibold mb-4">Certificate List</h2>
         
-        {/* Search Input */}
         <div className="mb-4">
           <input
             type="text"
@@ -414,7 +608,6 @@ const Certificates = () => {
           />
         </div>
 
-        {/* Certificates Table */}
         {filteredCertificates.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white">

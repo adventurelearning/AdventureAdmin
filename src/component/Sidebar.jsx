@@ -14,6 +14,7 @@ import {
   FaUserCog,
   FaFileAlt
 } from "react-icons/fa";
+import { PiCertificateFill } from "react-icons/pi";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 
@@ -146,7 +147,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                     ${location.pathname === "/certificate" ? "bg-gray-700" : ""}
                   `}
                 >
-                  <FaUserCog className="flex-shrink-0 text-gray-300" size={18} />
+                  <PiCertificateFill  className="flex-shrink-0 text-gray-300" size={20} />
                   <span className="ml-3">Certificate</span>
                 </Link>
               </li>
