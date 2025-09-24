@@ -11,6 +11,7 @@ import Test from "./pages/Test";
 import Intern from "./pages/Intern";
 import TechContact from "./pages/TechContact";
 import JobApplication from "./pages/JobApplication";
+import Certificates from "./pages/Certificates";
 import BlogList from "./pages/blog/BlogList";
 import CreateBlog from "./pages/blog/CreateBlog";
 
@@ -76,6 +77,8 @@ const App = () => {
                   <Route path="/job-application" element={<JobApplication />} />
                   <Route path="/test" element={<Test />} />
                   <Route path="*" element={<Navigate to="/dashboard" />} />
+                  <Route path='/certificate' element={<Certificates />} />
+
                   <Route path="blog">
                     <Route index element={<BlogList />} />
                     <Route path="add-blog" element={<CreateBlog />} />

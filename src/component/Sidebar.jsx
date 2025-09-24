@@ -15,6 +15,7 @@ import {
   FaFileAlt,
   FaBloggerB
 } from "react-icons/fa";
+import { PiCertificateFill } from "react-icons/pi";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 
@@ -140,6 +141,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                   <span className="ml-3">Register</span>
                 </Link>
               </li>
+               <li>
+                <Link
+                  to="/certificate"
+                  className={`flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors
+                    ${location.pathname === "/certificate" ? "bg-gray-700" : ""}
+                  `}
+                >
+                  <PiCertificateFill  className="flex-shrink-0 text-gray-300" size={20} />
+                  <span className="ml-3">Certificate</span>
               <li>
                 <Link
                   to="/blog"
