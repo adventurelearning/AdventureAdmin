@@ -12,7 +12,8 @@ import {
   FaEnvelope,
   FaBriefcase,
   FaUserCog,
-  FaFileAlt
+  FaFileAlt,
+  FaBloggerB
 } from "react-icons/fa";
 import { PiCertificateFill } from "react-icons/pi";
 import { Link, useLocation } from "react-router-dom";
@@ -149,6 +150,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 >
                   <PiCertificateFill  className="flex-shrink-0 text-gray-300" size={20} />
                   <span className="ml-3">Certificate</span>
+              <li>
+                <Link
+                  to="/blog"
+                  className={`flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors
+                    ${location.pathname === "/blog" ? "bg-gray-700" : ""}
+                  `}
+                >
+                  <FaBloggerB className="flex-shrink-0 text-gray-300" size={18} />
+                  <span className="ml-3">Blog</span>
                 </Link>
               </li>
 
