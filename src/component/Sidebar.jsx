@@ -15,9 +15,9 @@ import {
   FaFileAlt,
   FaBloggerB
 } from "react-icons/fa";
-import { PiCertificateFill } from "react-icons/pi";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../AuthContext";
+import { PiCertificateFill } from "react-icons/pi";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const { logout } = useAuth();
@@ -49,10 +49,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       {/* Sidebar */}
       <div
         className={`fixed top-0 left-0 h-full bg-gray-800 text-white transition-all duration-300 ease-in-out z-30
-          ${
-            sidebarOpen
-              ? "translate-x-0 w-64"
-              : "-translate-x-full lg:translate-x-0 lg:w-64"
+          ${sidebarOpen
+            ? "translate-x-0 w-64"
+            : "-translate-x-full lg:translate-x-0 lg:w-64"
           }
         `}
       >
@@ -141,15 +140,18 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                   <span className="ml-3">Register</span>
                 </Link>
               </li>
-               <li>
+              <li>
                 <Link
                   to="/certificate"
                   className={`flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors
                     ${location.pathname === "/certificate" ? "bg-gray-700" : ""}
                   `}
                 >
-                  <PiCertificateFill  className="flex-shrink-0 text-gray-300" size={20} />
+                  <PiCertificateFill className="flex-shrink-0 text-gray-300" size={20} />
                   <span className="ml-3">Certificate</span>
+                </Link>
+              </li>
+
               <li>
                 <Link
                   to="/blog"
